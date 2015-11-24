@@ -17,12 +17,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
+import datetime
+import dateutil
 
 from openerp import models, fields, api, exceptions, _
+from openerp.tools.safe_eval import safe_eval
 
 from openerp.addons.connector.queue.job import job, related_action
 from openerp.addons.connector.session import ConnectorSession
-from ast import literal_eval
 
 
 def impexp_related_action(session, job):
@@ -100,8 +102,23 @@ class ImpExpTask(models.Model):
         self.ensure_one()
         config = self.config
         if config:
-            return literal_eval(config)
+            eval_context = self._get_eval_context()
+            return safe_eval(config, eval_context)
         return {}
+
+    def _get_eval_context(self):
+        """ Prepare the context used when evaluating config.
+        :returns: dict -- evaluation context given to (safe_)eval """
+
+        env = self.env
+        return {
+            # python libs
+            'datetime': datetime,
+            'dateutil': dateutil,
+            # orm
+            'env': env,
+            'record': self,
+        }
 
     @api.multi
     def do_run(self, async=True, **kwargs):
