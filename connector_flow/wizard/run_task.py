@@ -57,3 +57,8 @@ class RunTaskWizard(models.TransientModel):
             kwargs['file_id'] = file.id
 
         self.task_id.do_run(**kwargs)
+
+    @api.model
+    def async_run_task(self, task_id):
+        runner = self.create({'task_id': task_id})
+        return runner.run_task()
